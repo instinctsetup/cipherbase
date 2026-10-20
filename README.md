@@ -4,8 +4,8 @@ An LSM-tree storage engine built from scratch in Go - the same architecture that
 powers RocksDB, Cassandra, ScyllaDB and LevelDB - with a live dashboard where you
 can watch writes flow from memtable to L0 to L1 in real time.
 
-**Demo video:** see `demo/cipherbase-demo.mp4` (Drive mirror linked below)
-**Report:** `docs/report/REPORT.pdf`
+**Demo video:** https://drive.google.com/file/d/1an5nX839ZxjNf0lVkXdwcAF4fx8_bZMt/view (also in `demo/cipherbase-demo.mp4`)
+**Report (PDF):** https://drive.google.com/file/d/10deakR-959ss1kWhohfxFlohRF9kacvl/view (also in `docs/report/REPORT.pdf`)
 
 ![dashboard](docs/dashboard.png)
 
