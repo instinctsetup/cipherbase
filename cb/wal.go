@@ -55,37 +55,42 @@ func (w *wal) append(op byte, key string, val []byte) error {
 var errCorrupt = errors.New("wal: corrupt record")
 
 // replay calls fn for each intact record and stops at the first corrupt or
-// torn tail (the expected outcome of a crash mid-append).
-func replayWAL(path string, fn func(op byte, key string, val []byte)) error {
+// torn tail (the expected outcome of a crash mid-append). It returns the
+// offset just past the last intact record so the caller can truncate the
+// garbage tail - otherwise new appends land after it and become invisible
+// to the next replay.
+func replayWAL(path string, fn func(op byte, key string, val []byte)) (int64, error) {
 	f, err := os.Open(path)
 	if errors.Is(err, os.ErrNotExist) {
-		return nil
+		return 0, nil
 	}
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer f.Close()
 	br := bufio.NewReader(f)
+	var offset int64
 	for {
 		var hdr [11]byte
 		if _, err := io.ReadFull(br, hdr[:]); err != nil {
-			return nil // clean EOF or torn header: stop replay
+			return offset, nil // clean EOF or torn header: stop replay
 		}
 		crc := binary.LittleEndian.Uint32(hdr[0:4])
 		op := hdr[4]
 		klen := int(binary.LittleEndian.Uint16(hdr[5:7]))
 		vlen := int(binary.LittleEndian.Uint32(hdr[7:11]))
 		if klen > 1<<20 || vlen > 1<<30 {
-			return nil // implausible lengths: torn record
+			return offset, nil // implausible lengths: torn record
 		}
 		payload := make([]byte, klen+vlen)
 		if _, err := io.ReadFull(br, payload); err != nil {
-			return nil // torn tail
+			return offset, nil // torn tail
 		}
 		if crc32.ChecksumIEEE(append(hdr[4:], payload...)) != crc {
-			return errCorruptTail
+			return offset, errCorruptTail
 		}
 		fn(op, string(payload[:klen]), payload[klen:])
+		offset += int64(11 + klen + vlen)
 	}
 }
 

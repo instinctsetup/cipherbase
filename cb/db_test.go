@@ -196,3 +196,27 @@ func TestSkiplistOrderingAndScale(t *testing.T) {
 		t.Fatal("lookup failed")
 	}
 }
+
+func TestWritesAfterCorruptTailRecoverySurviveSecondCrash(t *testing.T) {
+	db, dir := openTemp(t)
+	db.Put("before", []byte("1"))
+	db.Close()
+	// corrupt the tail as a crash mid-append would
+	walPath := filepath.Join(dir, "wal.log")
+	st, _ := os.Stat(walPath)
+	os.Truncate(walPath, st.Size()-3)
+	db2, err := Open(dir)
+	if err != nil {
+		t.Fatalf("torn WAL tail must not prevent recovery: %v", err)
+	}
+	// write more after recovery, then crash again without Close
+	db2.Put("after", []byte("2"))
+	db3, err := Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db3.Close()
+	if v, ok, _ := db3.Get("after"); !ok || string(v) != "2" {
+		t.Fatalf("post-recovery write lost after second crash: %q %v", v, ok)
+	}
+}

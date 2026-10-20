@@ -70,17 +70,25 @@ func Open(dir string) (*DB, error) {
 			}
 		}
 	}
-	// replay WAL (writes after the last flush)
-	if err := replayWAL(filepath.Join(dir, "wal.log"), func(op byte, key string, val []byte) {
+	// replay WAL (writes after the last flush), then drop any corrupt or
+	// torn tail so post-recovery writes stay visible to the next replay
+	walPath := filepath.Join(dir, "wal.log")
+	validLen, err := replayWAL(walPath, func(op byte, key string, val []byte) {
 		if op == opDel {
 			db.mem.set(key, nil, true)
 		} else {
 			db.mem.set(key, val, false)
 		}
-	}); err != nil && !errors.Is(err, errCorruptTail) {
+	})
+	if err != nil && !errors.Is(err, errCorruptTail) {
 		return nil, err
 	}
-	w, err := openWAL(filepath.Join(dir, "wal.log"))
+	if fi, statErr := os.Stat(walPath); statErr == nil && fi.Size() > validLen {
+		if err := os.Truncate(walPath, validLen); err != nil {
+			return nil, err
+		}
+	}
+	w, err := openWAL(walPath)
 	if err != nil {
 		return nil, err
 	}
