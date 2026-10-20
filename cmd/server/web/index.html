@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>cipherbase - LSM-tree storage engine</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header>
+  <div class="brand">
+    <span class="logo">▦</span>
+    <div>
+      <h1>cipherbase</h1>
+      <p class="tagline">an LSM-tree storage engine built from scratch - watch it work</p>
+    </div>
+  </div>
+</header>
+
+<section class="stats">
+  <div class="stat"><span class="num" id="s-puts">0</span><span class="lbl">writes</span></div>
+  <div class="stat"><span class="num" id="s-gets">0</span><span class="lbl">reads</span></div>
+  <div class="stat"><span class="num" id="s-flushes">0</span><span class="lbl">memtable flushes</span></div>
+  <div class="stat"><span class="num" id="s-compactions">0</span><span class="lbl">compactions</span></div>
+  <div class="stat"><span class="num" id="s-bloom">0</span><span class="lbl">bloom filter skips</span></div>
+  <div class="stat controls">
+    <button id="load">▶ Write 30k, read 20k</button>
+    <button id="flush" class="ghost">Flush</button>
+    <button id="compact" class="ghost">Compact</button>
+  </div>
+</section>
+
+<section class="lsm panel">
+  <h2>Storage layout</h2>
+  <div class="levels">
+    <div class="level"><div class="level-name">Memtable (RAM, skip list)</div><div class="files" id="mem">active writes land here</div></div>
+    <div class="arrow">↓ flush when full</div>
+    <div class="level"><div class="level-name">Level 0 (SSTables on disk)</div><div class="files" id="l0">–</div></div>
+    <div class="arrow">↓ compaction merges + drops overwritten &amp; deleted keys</div>
+    <div class="level"><div class="level-name">Level 1 (compacted SSTable)</div><div class="files" id="l1">–</div></div>
+  </div>
+</section>
+
+<main>
+  <section class="panel">
+    <h2>Put / Get / Delete</h2>
+    <div class="form">
+      <input id="k" placeholder="key">
+      <input id="v" placeholder="value">
+      <button id="put">Put</button>
+      <button id="get" class="ghost">Get</button>
+      <button id="del" class="ghost">Delete</button>
+    </div>
+    <div id="result" class="result muted">results appear here</div>
+  </section>
+  <section class="panel">
+    <h2>Scan (sorted order, newest wins)</h2>
+    <button id="scan" class="ghost">Scan all keys</button>
+    <div id="scan-out" class="scan muted"></div>
+  </section>
+</main>
+<script src="/app.js"></script>
+</body>
+</html>

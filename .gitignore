@@ -1,0 +1,5 @@
+cipherbase-data/
+benchmarks.json
+*.sst
+*.wal
+/tmp
